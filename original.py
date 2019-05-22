@@ -109,10 +109,11 @@ def main():
 
     parser.add_argument('--infile', type=str, help='input file')
     parser.add_argument('--indepfile', type=str, default=None, help='independent test file')
+    parser.add_argument('--indepfile2', type=str, default=None)
     parser.add_argument('--blosum', type=str, default='data/BLOSUM50', help='file with BLOSUM matrix')
     parser.add_argument('--batch_size', type=int, default=50, metavar='N', help='batch size')
     parser.add_argument('--model_name', type=str, default='original.ckpt', help = 'if train is True, model name to be saved, otherwise model name to be loaded')
-    parser.add_argument('--epoch', type = int, default=150, metavar='N', help='number of epoch to train')
+    parser.add_argument('--epoch', type = int, default=200, metavar='N', help='number of epoch to train')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR', help='learning rate')
     parser.add_argument('--cuda', type = str2bool, default=True, help = 'enable cuda')
     parser.add_argument('--seed', type=int, default=7405, help='random seed')
@@ -141,6 +142,10 @@ def main():
         X_indep_pep, X_indep_tcr, y_indep = data_io_tf.read_pTCR(args.indepfile)
         y_indep = np.array(y_indep)
 
+    if args.indepfile2 is not None:
+        X_indep2_pep, X_indep2_tcr, y_indep2 = data_io_tf.read_pTCR(args.indepfile2)
+        y_indep2 = np.array(y_indep2)
+
     # embedding matrix
     embedding = load_embedding(args.blosum)
     
@@ -164,6 +169,10 @@ def main():
                                 batch_size=args.batch_size, device=device)
     if args.indepfile is not None:
         indep_loader = define_dataloader(X_indep_pep, X_indep_tcr, y_indep, None,
+                                maxlen_pep=train_loader['pep_length'], maxlen_tcr=train_loader['tcr_length'],
+                                batch_size=args.batch_size, device=device)
+    if args.indepfile2 is not None:
+        indep_loader2 = define_dataloader(X_indep2_pep, X_indep2_tcr, y_indep2, None,
                                 maxlen_pep=train_loader['pep_length'], maxlen_tcr=train_loader['tcr_length'],
                                 batch_size=args.batch_size, device=device)
                                      
@@ -220,6 +229,16 @@ def main():
             wf_bb = csv.writer(wf_bb_open, delimiter='\t')
             #wf_bb = csv.DictWriter(wf_open, wf_colnames, delimiter='\t')
             write_blackbox_output_batchiter(indep_loader, model, wf_bb, device)
+
+        if args.indepfile2 is not None:
+            print('[INDEP2] {} ----------------'.format(epoch)) 
+            perf_indep2 = get_performance_batchiter(indep_loader2['loader'], model, device)
+            print_performance(perf_indep2)
+
+            ## write blackbox output
+            wf_bb_open2 = open('data/blackboxpred_' + os.path.basename(args.indepfile2), 'w')
+            wf_bb2 = csv.writer(wf_bb_open2, delimiter='\t')
+            write_blackbox_output_batchiter(indep_loader2, model, wf_bb2, device)
 
         model_name = './models' + model_name
         torch.save(model.state_dict(), model_name)

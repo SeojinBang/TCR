@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 import math
@@ -113,22 +114,16 @@ def write_blackbox_output_batchiter(loader, model, wf, device='cpu'):
     for batch in loader:
         
         X_pep, X_tcr, y = batch.X_pep.to(device), batch.X_tcr.to(device), batch.y.to(device)
-        score = model(X_pep, X_tcr)
-        score = np.ndarray.flatten(score.data.cpu().numpy())
+        score = model(X_pep, X_tcr).data.cpu().tolist()
         pred = np.argmax(score, -1)
+        
         for i in range(len(pred)):
 
-            pep_seq = rev_peploader[X_pep[i]]
-            tcr_seq = rev_tcrloader[X_tcr[i]]
-            wf.writerow([pep_seq, tcr_seq, int(pred[1])])
-        #loss += F.cross_entropy(yhat, y, reduction='sum').item()
-        #score.extend(yhat.data.cpu().tolist())
-        #label.extend(y.data.cpu().tolist())
-
-    perf 
-    perf['loss'] = round(loss, 4)
-
-    return perf
+            pep_seq = ''.join([rev_peploader[x] for x in X_pep[i]])
+            pep_seq = re.sub(r'<pad>', '', pep_seq)
+            tcr_seq = ''.join([rev_tcrloader[x] for x in X_tcr[i]])
+            tcr_seq = re.sub(r'<pad>', '', tcr_seq)
+            wf.writerow([pep_seq, tcr_seq, int(pred[i])])
     
 
 def get_performance_batchiter(loader, model, device='cpu'):
@@ -271,12 +266,12 @@ def check_model_name(model_name, file_path = 'models'):
         
         valid = {"yes": True, "y": True, "ye": True, 'true': True, 't': True, '1': True, "no": False, "n": False, 'false': False, 'f': False, '0': False}
         sys.stdout.write("The file {} already exists. Do you want to overwrite it? [yes/no]".format(model_name))
-        choice = input().lower()
+        choice = raw_input().lower()
     
         if choice in valid:
             if not valid[choice]:
                 sys.stdout.write("Please assign another name. (ex. 'original_2.ckpt')")
-                model_name = input().lower()
+                model_name = raw_input().lower()
                 check_model_name(model_name = model_name, file_path = file_path)
                 
         else:
