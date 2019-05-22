@@ -189,8 +189,9 @@ def main():
     ## fit model        
     if args.mode == 'train' : 
             
-        model_name = check_model_name(args.model_name)
-        model_name = check_model_name(model_name, './models')
+        #model_name = check_model_name(args.model_name)
+        #model_name = check_model_name(model_name, './models')
+        model_name = args.model_name
 
         wf_open = open('result/'+os.path.splitext(os.path.basename(args.infile))[0]+'_'+os.path.splitext(os.path.basename(args.model_name))[0]+'_valid.csv', 'w')
         wf_colnames = ['loss', 'accuracy', 'precision1', 'precision0', 'recall1', 'recall0',
@@ -230,6 +231,10 @@ def main():
             #wf_bb = csv.DictWriter(wf_open, wf_colnames, delimiter='\t')
             write_blackbox_output_batchiter(indep_loader, model, wf_bb, device)
 
+            wf_bb_open1 = open('data/blackboxpredscore_' + os.path.basename(args.indepfile), 'w')
+            wf_bb1 = csv.writer(wf_bb_open1, delimiter='\t')
+            write_blackbox_output_batchiter(indep_loader, model, wf_bb1, device, ifscore=True)
+
         if args.indepfile2 is not None:
             print('[INDEP2] {} ----------------'.format(epoch)) 
             perf_indep2 = get_performance_batchiter(indep_loader2['loader'], model, device)
@@ -239,6 +244,10 @@ def main():
             wf_bb_open2 = open('data/blackboxpred_' + os.path.basename(args.indepfile2), 'w')
             wf_bb2 = csv.writer(wf_bb_open2, delimiter='\t')
             write_blackbox_output_batchiter(indep_loader2, model, wf_bb2, device)
+
+            wf_bb_open3 = open('data/blackboxpredscore_' + os.path.basename(args.indepfile2), 'w')
+            wf_bb3 = csv.writer(wf_bb_open3, delimiter='\t')
+            write_blackbox_output_batchiter(indep_loader2, model, wf_bb3, device, ifscore=True)
 
         model_name = './models' + model_name
         torch.save(model.state_dict(), model_name)

@@ -240,8 +240,8 @@ def main():
     parser.add_argument('--indepfile', type=str, default=None, help='independent test file')
     parser.add_argument('--blosum', type=str, default='data/BLOSUM50', help='file with BLOSUM matrix')
     parser.add_argument('--batch_size', type=int, default=50, metavar='N', help='batch size')
-    parser.add_argument('--model_name', type=str, default='original.ckpt', help = 'if train is True, model name to be saved, otherwise model name to be loaded')
-    parser.add_argument('--epoch', type = int, default=150, metavar='N', help='number of epoch to train')
+    parser.add_argument('--model_name', type=str, default='vibi.ckpt', help = 'if train is True, model name to be saved, otherwise model name to be loaded')
+    parser.add_argument('--epoch', type = int, default=250, metavar='N', help='number of epoch to train')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR', help='learning rate')
     parser.add_argument('--cuda', type = str2bool, default=True, help = 'enable cuda')
     parser.add_argument('--seed', type=int, default=7405, help='random seed')
@@ -310,8 +310,8 @@ def main():
     ## fit model        
     if args.mode == 'train' : 
             
-        model_name = check_model_name(args.model_name)
-        model_name = check_model_name(model_name, './models')
+        #model_name = check_model_name(args.model_name)
+        #model_name = check_model_name(model_name, './models')
 
         wf_open_fixed = open('result/'+os.path.splitext(os.path.basename(args.infile))[0]+'_'+os.path.splitext(os.path.basename(args.model_name))[0]+'_valid_fixed.csv', 'w')
         wf_open_cont = open('result/'+os.path.splitext(os.path.basename(args.infile))[0]+'_'+os.path.splitext(os.path.basename(args.model_name))[0]+'_valid_cont.csv', 'w')
@@ -333,7 +333,7 @@ def main():
             print_performance(perf_train_fixed)
             print_performance(perf_train_cont)
             print('[VALID] {} ----------------'.format(epoch))
-            print_performance(perf_valid_cont, writeif=True, wf=wf_fixed)
+            print_performance(perf_valid_fixed, writeif=True, wf=wf_fixed)
             print_performance(perf_valid_cont, writeif=True, wf=wf_cont)
 
         print('[TEST ] {} ----------------'.format(epoch))
@@ -346,8 +346,8 @@ def main():
             print_performance(perf_indep_fixed)
             print_performance(perf_indep_cont)
 
-        model_name = './models' + model_name
-        torch.save(model.state_dict(), model_name)
+        #model_name = './models/' + model_name
+        #torch.save(model.state_dict(), model_name)
             
     elif args.mode == 'test' : 
         

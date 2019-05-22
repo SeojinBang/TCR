@@ -104,7 +104,7 @@ def get_performance_fidelity_batchiter(loader, model, prior, args, device='cpu')
     return perf_fixed, perf_cont
     
 
-def write_blackbox_output_batchiter(loader, model, wf, device='cpu'):
+def write_blackbox_output_batchiter(loader, model, wf, device='cpu', ifscore=False):
 
     model.eval()
     
@@ -123,7 +123,10 @@ def write_blackbox_output_batchiter(loader, model, wf, device='cpu'):
             pep_seq = re.sub(r'<pad>', '', pep_seq)
             tcr_seq = ''.join([rev_tcrloader[x] for x in X_tcr[i]])
             tcr_seq = re.sub(r'<pad>', '', tcr_seq)
-            wf.writerow([pep_seq, tcr_seq, int(pred[i])])
+            if ifscore:
+                wf.writerow([pep_seq, tcr_seq, int(y[i]), int(pred[i]), float(np.exp(score[i][1]))])
+            else:
+                wf.writerow([pep_seq, tcr_seq, int(pred[i])])
     
 
 def get_performance_batchiter(loader, model, device='cpu'):
