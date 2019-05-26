@@ -13,11 +13,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions.relaxed_categorical import RelaxedOneHotCategorical
 from data_loader import define_dataloader,load_embedding
-from utils import str2bool,check_model_name,timeSince,get_performance_fidelity_batchiter,print_performance,idxtobool,cuda
+from utils import str2bool,check_model_name,timeSince,get_performance_fidelity_batchiter,print_performance,idxtobool,cuda,write_explain_batchiter
 import data_io_tf
 from pathlib import Path
 
-PRINT_EVERY_EPOCH = 1
+PRINT_EVERY_EPOCH = 100000
 SIZE_HIDDEN1_CNN = 32
 SIZE_HIDDEN2_CNN = 16
 SIZE_KERNEL1 = 3
@@ -29,7 +29,7 @@ class VIBI(nn.Module):
         super(VIBI, self).__init__()
 
         ## parameter
-        self.tau = 0.5
+        self.tau = 0.1
         self.K = kwargs['K']
         self.chunk_size = kwargs['chunk_size']
         self.num_sample = kwargs['num_sample']
@@ -73,7 +73,7 @@ class VIBI(nn.Module):
             nn.MaxPool1d(kernel_size=self.size_kernel2)
             )
 
-        ## dense layer at the end
+        ## dense layer in the approximator
         self.net_pep_dim = self.size_hidden2_cnn * ((pep_length-self.size_kernel1+1-self.size_kernel2+1)/self.size_kernel2)
         self.net_tcr_dim = self.size_hidden2_cnn * ((tcr_length-self.size_kernel1+1-self.size_kernel2+1)/self.size_kernel2)
         self.net = nn.Sequential(
@@ -91,19 +91,19 @@ class VIBI(nn.Module):
             nn.Dropout(0.3),
             nn.Linear(self.net_pep_dim+self.net_tcr_dim, 32),
             nn.ReLU(),
-            #nn.Linear(32, 16),
-            #nn.ReLU(),
-            nn.Linear(32, pep_length),
-            nn.LogSoftmax(1)
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, pep_length),
+            nn.LogSoftmax(-1)
             )
         self.explainer_tcr = nn.Sequential(
             nn.Dropout(0.3),
             nn.Linear(self.net_pep_dim+self.net_tcr_dim, 32),
             nn.ReLU(),
-            #nn.Linear(32, 16),
-            #nn.ReLU(),
-            nn.Linear(32, tcr_length),
-            nn.LogSoftmax(1)
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, tcr_length),
+            nn.LogSoftmax(-1)
             )
         
     def forward(self, pep, tcr, num_sample=1):
@@ -157,7 +157,7 @@ class VIBI(nn.Module):
         
         return peptcr
 
-    def reparameterize(self, p_pep, p_tcr, tau, k, num_sample=1):
+    def reparameterize(self, p_pep, p_tcr, tau, k, num_sample):
 
         # sampling
         batch_size = p_pep.size(0)
@@ -216,13 +216,17 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
         # define loss
         class_loss = class_criterion(score, y).div(math.log(2)) / args.batch_size
-        info_loss = args.K * (info_criterion(p_pep, p_pep_prior)+info_criterion(p_tcr, p_tcr_prior)) / args.batch_size
-        total_loss = class_loss + args.beta * info_loss
+        #info_loss = args.K * (info_criterion(p_pep, p_pep_prior)+info_criterion(p_tcr, p_tcr_prior)) / args.batch_size
+        info_loss = (info_criterion(p_pep, p_pep_prior)+info_criterion(p_tcr, p_tcr_prior)) / args.batch_size
+        total_loss = class_loss + args.beta* info_loss
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-    if epoch % PRINT_EVERY_EPOCH == 1:
+    #print("peptide_prob")
+    #print(torch.exp(p_pep)[:3])
+
+    if epoch % PRINT_EVERY_EPOCH == 0:
         print('[TRAIN] Epoch {} Total Loss {:.4f} = {:.4f} + beta {:.4f}'.format(epoch,
                                                                                  total_loss.item(),
                                                                                  class_loss.item(),
@@ -232,12 +236,13 @@ def main():
 
     parser = argparse.ArgumentParser(description='Prediction of TCR binding to peptide-MHC complexes')
 
-    parser.add_argument('--K', type=int, default=3, help='number of cognitive chunk')
+    parser.add_argument('--K', type=int, default=10, help='number of cognitive chunk')
     parser.add_argument('--chunk_size', type=int, default=1, help='chunk size')
-    parser.add_argument('--num_sample', type=str, default=12, help='the number of samples when perform multi-shot prediction')
+    parser.add_argument('--num_sample', type=int, default=10, help='the number of samples when perform multi-shot prediction')
     parser.add_argument('--beta', type = float, default=0.1, help = 'beta for balance between information loss and prediction loss')
     parser.add_argument('--infile', type=str, help='input file')
     parser.add_argument('--indepfile', type=str, default=None, help='independent test file')
+    parser.add_argument('--indepfile2', type=str, default=None, help='independent test file')
     parser.add_argument('--blosum', type=str, default='data/BLOSUM50', help='file with BLOSUM matrix')
     parser.add_argument('--batch_size', type=int, default=50, metavar='N', help='batch size')
     parser.add_argument('--model_name', type=str, default='vibi.ckpt', help = 'if train is True, model name to be saved, otherwise model name to be loaded')
@@ -270,6 +275,10 @@ def main():
         X_indep_pep, X_indep_tcr, y_indep = data_io_tf.read_pTCR(args.indepfile)
         y_indep = np.array(y_indep)
 
+    if args.indepfile2 is not None:
+        X_indep2_pep, X_indep2_tcr, y_indep2 = data_io_tf.read_pTCR(args.indepfile2)
+        y_indep2 = np.array(y_indep2)
+
     # embedding matrix
     embedding = load_embedding(args.blosum)
     
@@ -293,6 +302,11 @@ def main():
                                 batch_size=args.batch_size, device=device)
     if args.indepfile is not None:
         indep_loader = define_dataloader(X_indep_pep, X_indep_tcr, y_indep, None,
+                                maxlen_pep=train_loader['pep_length'], maxlen_tcr=train_loader['tcr_length'],
+                                batch_size=args.batch_size, device=device)
+
+    if args.indepfile2 is not None:
+        indep_loader2 = define_dataloader(X_indep2_pep, X_indep2_tcr, y_indep2, None,
                                 maxlen_pep=train_loader['pep_length'], maxlen_tcr=train_loader['tcr_length'],
                                 batch_size=args.batch_size, device=device)
                                      
@@ -326,29 +340,47 @@ def main():
         for epoch in range(1, args.epoch + 1):
             
             train(args, model, device, train_loader['loader'], optimizer, epoch)
+
+            print('Epoch {} TimeSince {}\n'.format(epoch, timeSince(t0)))
+            
             perf_train_fixed, perf_train_cont = get_performance_fidelity_batchiter(train_loader['loader'], model, prior, args, device)
             perf_valid_fixed, perf_valid_cont = get_performance_fidelity_batchiter(valid_loader['loader'], model, prior, args, device)
-            print('Epoch {} TimeSince {}\n'.format(epoch, timeSince(t0)))
             print('[TRAIN] {} ----------------'.format(epoch))
             print_performance(perf_train_fixed)
             print_performance(perf_train_cont)
             print('[VALID] {} ----------------'.format(epoch))
             print_performance(perf_valid_fixed, writeif=True, wf=wf_fixed)
             print_performance(perf_valid_cont, writeif=True, wf=wf_cont)
+            
 
         print('[TEST ] {} ----------------'.format(epoch))
         perf_test_fixed, perf_test_cont = get_performance_fidelity_batchiter(test_loader['loader'], model, prior, args, device)
         print_performance(perf_test_fixed)
         print_performance(perf_test_cont)
+        
         if args.indepfile is not None:
             print('[INDEP] {} ----------------'.format(epoch)) 
             perf_indep_fixed, perf_indep_cont = get_performance_fidelity_batchiter(indep_loader['loader'], model, prior, args, device)
             print_performance(perf_indep_fixed)
             print_performance(perf_indep_cont)
 
+            wf_vibi_open = open('result/vibi_' + os.path.basename(args.indepfile), 'w')
+            wf_vibi = csv.writer(wf_vibi_open, delimiter='\t')
+            write_explain_batchiter(indep_loader, model, wf_vibi, device)
+
+        if args.indepfile2 is not None:
+            print('[INDEP2] {} ----------------'.format(epoch)) 
+            perf_indep_fixed2, perf_indep_cont2 = get_performance_fidelity_batchiter(indep_loader2['loader'], model, prior, args, device)
+            print_performance(perf_indep_fixed2)
+            print_performance(perf_indep_cont2)
+
+            wf_vibi_open2 = open('result/vibi_' + os.path.basename(args.indepfile2), 'w')
+            wf_vibi2 = csv.writer(wf_vibi_open2, delimiter='\t')
+            write_explain_batchiter(indep_loader2, model, wf_vibi2, device)
+
         #model_name = './models/' + model_name
         #torch.save(model.state_dict(), model_name)
-            
+           
     elif args.mode == 'test' : 
         
         model_name = args.model_name

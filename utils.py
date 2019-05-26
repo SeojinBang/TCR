@@ -102,8 +102,39 @@ def get_performance_fidelity_batchiter(loader, model, prior, args, device='cpu')
     perf_cont['total_loss'] = round(total_loss_cont, 4)
 
     return perf_fixed, perf_cont
-    
 
+
+def write_explain_batchiter(loader, model, wf, device='cpu'):
+
+    model.eval()
+    
+    rev_peploader = loader['pep_amino_idx']
+    rev_tcrloader = loader['tcr_amino_idx']
+    loader = loader['loader']
+    for batch in loader:
+        
+        X_pep, X_tcr, y = batch.X_pep.to(device), batch.X_tcr.to(device), batch.y.to(device)
+        _, p_pep, p_tcr, _, _, score = model(X_pep, X_tcr)
+        p_pep = np.exp(p_pep.data.cpu().tolist())
+        p_tcr = np.exp(p_tcr.data.cpu().tolist())
+        score = score.data.cpu().tolist()
+        pred = np.argmax(score, -1)
+        
+        for i in range(len(pred)):
+
+            pep_seq = ''.join([rev_peploader[x] for x in X_pep[i]])
+            pep_seq = re.sub(r'<pad>', '', pep_seq)
+            tcr_seq = ''.join([rev_tcrloader[x] for x in X_tcr[i]])
+            tcr_seq = re.sub(r'<pad>', '', tcr_seq)
+
+            newrow = [int(y[i]), int(pred[i]), float(np.exp(score[i][1]))]
+            newrow.extend([pep_seq])
+            newrow.extend(p_pep[i])
+            newrow.extend([tcr_seq])
+            newrow.extend(p_tcr[i])
+            wf.writerow(newrow)
+
+                
 def write_blackbox_output_batchiter(loader, model, wf, device='cpu', ifscore=False):
 
     model.eval()

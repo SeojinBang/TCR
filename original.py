@@ -176,7 +176,6 @@ def main():
                                 maxlen_pep=train_loader['pep_length'], maxlen_tcr=train_loader['tcr_length'],
                                 batch_size=args.batch_size, device=device)
                                      
-
     ## define model
     model = Net(embedding, train_loader['pep_length'], train_loader['tcr_length']).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -189,11 +188,11 @@ def main():
     ## fit model        
     if args.mode == 'train' : 
             
-        #model_name = check_model_name(args.model_name)
-        #model_name = check_model_name(model_name, './models')
+        model_name = check_model_name(args.model_name)
+        model_name = check_model_name(model_name, './models')
         model_name = args.model_name
 
-        wf_open = open('result/'+os.path.splitext(os.path.basename(args.infile))[0]+'_'+os.path.splitext(os.path.basename(args.model_name))[0]+'_valid.csv', 'w')
+        wf_open = open('result/'+os.path.splitext(os.path.basename(args.infile))[0]+'_'+os.path.splitext(os.path.basename(args.model_name))[0]+'_valid_K3.csv', 'w')
         wf_colnames = ['loss', 'accuracy', 'precision1', 'precision0', 'recall1', 'recall0',
                        'f1macro','f1micro', 'auc']
         wf = csv.DictWriter(wf_open, wf_colnames, delimiter='\t')
