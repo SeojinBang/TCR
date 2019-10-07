@@ -43,8 +43,9 @@ TCRGP_epitope2cdr3_cleaned_wLabel.txt: VDJdb data preprocessed by TCRGP authors
 netTCR_training_positive_labeled.txt: IEDB data preprocessed by netTCR authors
 
 ## Credit
-[netTCR Repo](https://github.com/mnielLab/netTCR) predicting peptide and TCR interaction.
-[TCRGP Repo](https://github.com/emmijokinen/TCRGP) a novel Gaussian process method that can predict if TCRs recognize certain epitopes.
+[netTCR Repo](https://github.com/mnielLab/netTCR): predicting peptide and TCR interaction.
+
+[TCRGP Repo](https://github.com/emmijokinen/TCRGP): a novel Gaussian process method that can predict if TCRs recognize certain epitopes.
 
 ## References
 Bang et al. 2019. **Explaining a black-box using Deep Variational Information Bottleneck Approach.** *ArXiv Preprint* [arXiv:1902.06918](https://arxiv.org/abs/1902.06918).
