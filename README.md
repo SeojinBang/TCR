@@ -1,11 +1,11 @@
 <h1 align="center">
-    [Temp title] TCR analysis
+    TCR to epitope binding prediction approach using VIBI
 </h1>
 
 <br />
 
 ## Overview
-This is a deep learning model for predicting TCR-epitope binding
+We illustrate how VIBI can be used to get insights from a model and ensure the safety of a model in a real world application.
 
 ## Usage
 Download and install the environment from Conda Cloud
@@ -43,11 +43,11 @@ TCRGP_epitope2cdr3_cleaned_wLabel.txt: VDJdb data preprocessed by TCRGP authors
 netTCR_training_positive_labeled.txt: IEDB data preprocessed by netTCR authors
 
 ## Credit
-netTCR repo
-TCRGP repo
+[netTCR Repo](https://github.com/mnielLab/netTCR) predicting peptide and TCR interaction.
+[TCRGP Repo](https://github.com/emmijokinen/TCRGP) a novel Gaussian process method that can predict if TCRs recognize certain epitopes.
 
 ## References
-Our recent paper on arXiv or bioArXiv??!
+Bang et al. 2019. **Explaining a black-box using Deep Variational Information Bottleneck Approach.** *ArXiv Preprint* [arXiv:1902.06918](https://arxiv.org/abs/1902.06918).
 
 ## Contact
 Please feel free to contact me by e-mail `seojinb at cs dot cmu dot edu`, if you have any questions.
