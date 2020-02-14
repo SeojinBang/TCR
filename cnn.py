@@ -25,7 +25,7 @@ class Net(nn.Module):
         self.size_hidden2_cnn = SIZE_HIDDEN2_CNN
         self.size_kernel1 = SIZE_KERNEL1
         self.size_kernel2 = SIZE_KERNEL2
-        self.size_padding = (self.size_kernel1-1)/2
+        self.size_padding = (self.size_kernel1-1)//2
         self.encode_pep = nn.Sequential(
             nn.Dropout(0.3),
             nn.Conv1d(self.embedding_dim,
@@ -64,8 +64,8 @@ class Net(nn.Module):
             )
 
         ## dense layer at the end
-        self.net_pep_dim = self.size_hidden2_cnn * ((pep_length-self.size_kernel1+1-self.size_kernel2+1)/self.size_kernel2)
-        self.net_tcr_dim = self.size_hidden2_cnn * ((tcr_length-self.size_kernel1+1-self.size_kernel2+1)/self.size_kernel2)
+        self.net_pep_dim = self.size_hidden2_cnn * ((pep_length-self.size_kernel1+1-self.size_kernel2+1)//self.size_kernel2)
+        self.net_tcr_dim = self.size_hidden2_cnn * ((tcr_length-self.size_kernel1+1-self.size_kernel2+1)//self.size_kernel2)
         self.net = nn.Sequential(
             nn.Dropout(0.3),
             nn.Linear(self.net_pep_dim+self.net_tcr_dim, 32),
