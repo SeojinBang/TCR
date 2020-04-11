@@ -12,15 +12,26 @@ AMINO_MAP = {'<pad>':24, '*': 23, 'A': 0, 'C': 4, 'B': 20,
 AMINO_MAP_REV = ['A','R','N','D','C','Q','E','G','H','I','L','K',
                  'M','F','P','S','T','W','Y','V','B','Z','X','*','<pad>']
 
-def define_dataloader(X_pep, X_tcr, y, yhat=None, maxlen_pep=None, maxlen_tcr=None, batch_size=50, device='cuda'):
+def define_dataloader(X_pep, X_tcr, y, yhat=None, 
+                    maxlen_pep=None, maxlen_tcr=None, 
+                    padding='front',
+                    batch_size=50, device='cuda'):
 
     device0 = 0 if device == 'cuda' else -1
     if maxlen_pep is None: maxlen_pep=max([len(x) for x in X_pep])
     if maxlen_tcr is None: maxlen_tcr=max([len(x) for x in X_tcr])
+    if padding == 'front':
+      pad_first_ = True
+    elif padding == 'end':
+      pad_first_ = False
+    else:
+      pad_first_ = False
 
     # define field
-    field_pep = data.Field(tokenize=tokenizer, batch_first=True, fix_length=maxlen_pep)
-    field_tcr = data.Field(tokenize=tokenizer, batch_first=True, fix_length=maxlen_tcr)
+    field_pep = data.Field(tokenize=tokenizer, batch_first=True, 
+                            pad_first=pad_first_, fix_length=maxlen_pep)
+    field_tcr = data.Field(tokenize=tokenizer, batch_first=True, 
+                            pad_first=pad_first_, fix_length=maxlen_tcr)
     field_y = data.Field(sequential=False, use_vocab=False)
     field_yhat = data.Field(sequential = False, use_vocab = False) if yhat is not None else None
 
