@@ -48,7 +48,7 @@ netTCR_training_positive_labeled.txt: IEDB data preprocessed by netTCR authors
 [TCRGP Repo](https://github.com/emmijokinen/TCRGP): a novel Gaussian process method that can predict if TCRs recognize certain epitopes.
 
 ## References
-Bang et al. 2019. **Explaining a black-box using Deep Variational Information Bottleneck Approach.** *ArXiv Preprint* [arXiv:1902.06918](https://arxiv.org/abs/1902.06918).
+Bang et al. AAAI 2021. **Explaining a black-box using Deep Variational Information Bottleneck Approach.** [arXiv:1902.06918](https://arxiv.org/abs/1902.06918).
 
 ## Contact
 Please feel free to contact me by e-mail `seojinb at cs dot cmu dot edu`, if you have any questions.
